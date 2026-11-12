@@ -72,7 +72,7 @@
   <main>
     <!-- 1. Главная панель + ИИ Генератор -->
     <section id="mod-0" class="module active">
-      <h2>1. Главная панель и AI-генератор Fanuc</h2>
+      <h2>1. Главная панель и AI-генератор Fanuc 0i Plus</h2>
 
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -85,7 +85,7 @@
             <div>
               <label>Провайдер ИИ</label>
               <select id="ai-provider" onchange="updateModelList()">
-                <option value="groq">Groq Cloud (Llama 3.3)</option>
+                <option value="groq">Groq Cloud (Llama)</option>
                 <option value="gemini">Google Gemini API</option>
               </select>
             </div>
@@ -111,7 +111,7 @@
         </div>
 
         <label style="margin-top:6px;">Опиши деталь, размеры, где находится G54 и чем обрабатываем:</label>
-        <textarea id="ai-input" style="min-height:85px; color:var(--text);" placeholder="Например: Сделай программу на Fanuc: фрезеровка контура 120х80 на глубину Z-10 по 2мм за проход, ноль G54 в центре детали, используй фрезу Т2 D10..."></textarea>
+        <textarea id="ai-input" style="min-height:85px; color:var(--text);" placeholder="Например: Сделай программу на Fanuc 0i Plus: фрезеровка контура 120х80 на глубину Z-10 по 2мм за проход, ноль G54 в центре детали, используй фрезу Т2 D10..."></textarea>
 
         <div class="btn-row">
           <button class="btn" id="ai-btn" onclick="runAiGenerator()">⚡ Сгенерировать G-code через ИИ</button>
@@ -121,7 +121,7 @@
 
       <div class="card" style="padding:10px 12px;">
         <div style="display:flex; justify-content:space-between; font-size:13px;">
-          <span>Стойка: <b>Fanuc 0i-MF / 31i</b></span>
+          <span>Стойка: <b>Fanuc 0i-MF Plus</b></span>
           <span>Фрез: <b id="stat-tools">0</b></span>
           <span>Программ: <b id="stat-progs">0</b></span>
         </div>
@@ -222,7 +222,7 @@
 
     <!-- 6. Макропрограммирование Fanuc -->
     <section id="mod-5" class="module">
-      <h2>6. Макропрограммирование Fanuc (Macro B)</h2>
+      <h2>6. Макропрограммирование Fanuc 0i Plus (Macro B)</h2>
       <div class="card">
         <label>Шаблон параметрического макроса</label>
         <select id="macro-type">
@@ -284,13 +284,13 @@
 
     <!-- 9. Постпроцессоры -->
     <section id="mod-8" class="module">
-      <h2>9. Постпроцессоры Fanuc</h2>
+      <h2>9. Постпроцессоры Fanuc 0i Plus</h2>
       <div class="card">
         <div class="form-row">
           <div><label>Модель стойки</label>
             <select id="pp-model">
-              <option value="Fanuc 0i-MF">Fanuc 0i-MF (3 оси)</option>
-              <option value="Fanuc 31i-MB">Fanuc 31i-MB</option>
+              <option value="Fanuc 0i-MF Plus">Fanuc 0i-MF Plus (3 оси)</option>
+              <option value="Fanuc 31i-B Plus">Fanuc 31i-B Plus</option>
             </select>
           </div>
           <div><label>Система координат</label>
@@ -345,12 +345,12 @@
 
   const AI_MODELS = {
     groq: [
-      { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B (Рекомендуется)" },
-      { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant" }
+      { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant" },
+      { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B" }
     ],
     gemini: [
-      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" }
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash (Рекомендуется)" },
+      { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" }
     ]
   };
 
@@ -405,7 +405,7 @@ M30
       }
     });
 
-    const savedProvider = localStorage.getItem("cnc_ai_provider") || "groq";
+    const savedProvider = localStorage.getItem("cnc_ai_provider") || "gemini";
     document.getElementById("ai-provider").value = savedProvider;
     updateModelList();
     const savedKey = localStorage.getItem("cnc_ai_key") || "";
@@ -452,14 +452,14 @@ M30
 
   function updateKeyStatus() {
     const key = localStorage.getItem("cnc_ai_key") || "";
-    const prov = localStorage.getItem("cnc_ai_provider") || "groq";
+    const prov = localStorage.getItem("cnc_ai_provider") || "gemini";
     const st = document.getElementById("key-status");
     if (key.length > 10) {
       st.style.color = "var(--green)";
       st.textContent = `✓ Ключ сохранён (${prov.toUpperCase()}: ${key.slice(0, 6)}...${key.slice(-4)})`;
     } else {
       st.style.color = "var(--accent)";
-      st.textContent = "Ключ ещё не задан. Вставь бесплатный ключ Groq (gsk_...) или Gemini (AIza...).";
+      st.textContent = "Ключ ещё не задан. Вставь ключ Gemini (AIza...) или Groq (gsk_...).";
       document.getElementById("ai-settings").style.display = "block";
     }
   }
@@ -497,7 +497,7 @@ M30
     }).join("; ");
 
     const systemPrompt = [
-      "You are an expert CNC Milling Programmer for a 3-axis vertical machining center with a Fanuc 0i-MF / 31i controller.",
+      "You are an expert CNC Milling Programmer for a 3-axis vertical machining center with a Fanuc 0i-MF Plus controller.",
       "Available tools in magazine: " + toolsSummary,
       "Strict Fanuc rules:",
       "1. Output ONLY valid Fanuc G-code wrapped in % at start and end. Do NOT wrap in markdown explanations.",
@@ -510,7 +510,7 @@ M30
     btn.disabled = true;
     statusBox.style.display = "block";
     statusBox.style.borderLeftColor = "var(--accent)";
-    statusBox.textContent = "⏳ Генерация управляющей программы Fanuc...";
+    statusBox.textContent = "⏳ Генерация управляющей программы Fanuc 0i Plus...";
 
     try {
       let rawCode = "";
@@ -892,4 +892,3 @@ M30
 </script>
 </body>
 </html>
-
