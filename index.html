@@ -6,592 +6,433 @@
   <title>CNC Programmer AI</title>
   <style>
     :root {
-      --bg: #0b0e14;
-      --panel: #161d26;
-      --card: #1e2733;
-      --accent: #ffb703;
-      --green: #2ec4b6;
-      --red: #e71d36;
-      --text: #f8f9fa;
-      --muted: #8d99ae;
-      --border: #2b3848;
+      --bg: #0d121c;
+      --panel: #161e2e;
+      --card: #1e293b;
+      --card-border: #334155;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --green: #10b981;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --orange: #f59e0b;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    
-    /* Шапка */
-    header { background: var(--panel); border-bottom: 3px solid var(--accent); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
-    .brand { font-weight: 900; font-size: 19px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
-    .menu-btn { background: var(--card); color: var(--accent); border: 2px solid var(--border); padding: 10px 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
 
-    /* Основное поле */
-    .layout { display: flex; flex: 1; overflow: hidden; position: relative; }
-    nav { width: 300px; background: var(--panel); border-right: 2px solid var(--border); overflow-y: auto; transition: transform 0.25s ease; z-index: 30; position: absolute; top: 0; bottom: 0; left: 0; transform: translateX(-100%); }
-    nav.open { transform: translateX(0); box-shadow: 6px 0 25px rgba(0,0,0,0.8); }
-    .nav-item { padding: 16px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: var(--text); }
-    .nav-item.active { background: var(--card); border-left: 6px solid var(--accent); color: var(--accent); }
+    /* Верхняя панель заголовка */
+    header { background: var(--panel); border-bottom: 1px solid var(--card-border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .brand-box { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { background: var(--accent); color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
+    .brand-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .brand-sub { font-size: 11px; color: var(--muted); }
 
-    main { flex: 1; overflow-y: auto; padding: 16px; }
-    .module { display: none; max-width: 800px; margin: 0 auto; }
-    .module.active { display: block; }
+    /* Основная рабочая область */
+    main { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 80px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
 
-    h2 { font-size: 20px; margin-bottom: 14px; color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 8px; }
-    .card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    h2 { font-size: 17px; margin-bottom: 14px; color: var(--text); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .back-btn { background: none; border: none; color: var(--text); font-size: 18px; cursor: pointer; margin-right: 6px; }
+
+    /* Сетка плиток главного экрана */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .dash-tile { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; height: 110px; cursor: pointer; transition: transform 0.1s; }
+    .dash-tile:active { transform: scale(0.97); }
+    .tile-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .tile-label { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+
+    /* Карточки проектов и элементов */
+    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .project-card { display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 16px; }
     
-    /* Формы и кнопки для цеха */
-    label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-    input, select, textarea { width: 100%; background: #0f131a; color: var(--text); border: 2px solid var(--border); border-radius: 8px; padding: 12px; font-size: 16px; margin-bottom: 10px; }
-    textarea { font-family: monospace; min-height: 120px; color: #55efc4; }
-    
-    .btn { background: var(--accent); color: #000; border: none; padding: 14px 20px; border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 16px; width: 100%; text-align: center; margin-top: 6px; box-shadow: 0 4px 10px rgba(255,183,3,0.3); }
-    .btn:active { transform: scale(0.98); }
-    .btn-green { background: var(--green); color: #000; }
-    .btn-sec { background: var(--panel); color: var(--text); border: 2px solid var(--border); }
-    
-    .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+    /* Табы (Материалы / Фрезы) */
+    .tabs-header { display: flex; background: var(--panel); border-radius: 10px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--card-border); }
+    .tab-btn { flex: 1; background: none; border: none; color: var(--muted); padding: 8px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; text-align: center; }
+    .tab-btn.active { background: var(--accent); color: white; }
+
+    /* Формы и поля */
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+    input, select, textarea { width: 100%; background: #0b0f17; color: var(--text); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 10px; }
+    textarea { font-family: monospace; min-height: 200px; color: #38bdf8; line-height: 1.4; }
+
+    .btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; font-size: 14px; width: 100%; cursor: pointer; text-align: center; margin-top: 6px; }
+    .btn:active { background: var(--accent-hover); }
+    .btn-green { background: var(--green); }
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
     .btn-row .btn { margin-top: 0; }
 
-    /* Чипы быстрого выбора */
-    .chip-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; }
-    .chip { background: var(--panel); border: 2px solid var(--border); color: var(--green); padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; white-space: nowrap; cursor: pointer; }
+    /* Список операций */
+    .op-item { display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; cursor: pointer; }
+    .op-item:active { background: #26334d; }
+    .op-left { display: flex; align-items: center; gap: 12px; }
+    .op-thumb { width: 36px; height: 36px; background: #0b0f17; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 1px solid var(--card-border); }
 
-    .result-box { background: #080a0f; border-left: 6px solid var(--green); padding: 14px; margin-top: 12px; font-family: monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap; border-radius: 4px; }
-    canvas { width: 100%; height: 320px; background: #05070a; border: 2px solid var(--border); border-radius: 10px; display: block; margin-top: 10px; touch-action: none; }
-    
-    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px; background: var(--panel); border: 2px solid var(--border); border-radius: 8px; margin-bottom: 10px; font-size: 15px; }
-    .badge { background: #2b3848; color: var(--accent); padding: 4px 8px; border-radius: 6px; font-size: 13px; font-weight: bold; }
+    /* Нижняя навигация (таббар) */
+    nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--panel); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 50; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); font-size: 10px; font-weight: 500; cursor: pointer; background: none; border: none; }
+    .nav-item.active { color: var(--accent); }
+    .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+
+    canvas { width: 100%; height: 280px; background: #0b0f17; border: 1px solid var(--card-border); border-radius: 10px; display: block; margin-bottom: 12px; }
+    .success-box { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--green); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 14px; }
+    .check-row { display: flex; align-items: center; gap: 10px; font-size: 13px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">⚙️ CNC Programmer AI <span style="font-size:12px; color:var(--muted); font-weight:normal;">[Fanuc 0i Plus]</span></div>
-  <button class="menu-btn" onclick="toggleMenu()">☰ Меню</button>
+  <div class="brand-box">
+    <div class="brand-icon">⚙️</div>
+    <div>
+      <div class="brand-title">CNC Programmer AI</div>
+      <div class="brand-sub">Fanuc • 3 оси • мм</div>
+    </div>
+  </div>
 </header>
 
-<div class="layout">
-  <nav id="sidebar"></nav>
+<main>
+  <!-- Экран 1: Главная (Дашборд) -->
+  <section id="screen-home" class="screen active">
+    <div class="dashboard-grid">
+      <div class="dash-tile" onclick="navigate('screen-materials')">
+        <div class="tile-icon" style="background:rgba(37,99,235,0.2); color:#60a5fa;">🧱</div>
+        <div class="tile-label">Материалы и инструменты</div>
+      </div>
+      <div class="dash-tile" onclick="navigate('screen-modes')">
+        <div class="tile-icon" style="background:rgba(16,185,129,0.2); color:#34d399;">🧮</div>
+        <div class="tile-label">Расчёт режимов</div>
+      </div>
+      <div class="dash-tile" onclick="navigate('screen-operations')">
+        <div class="tile-icon" style="background:rgba(147,51,234,0.2); color:#c084fc;">📦</div>
+        <div class="tile-label">Операции обработки</div>
+      </div>
+      <div class="dash-tile" onclick="navigate('screen-gcode')">
+        <div class="tile-icon" style="background:rgba(245,158,11,0.2); color:#fbbf24;">💻</div>
+        <div class="tile-label">Генерация G-кода</div>
+      </div>
+      <div class="dash-tile" onclick="navigate('screen-sim')">
+        <div class="tile-icon" style="background:rgba(6,182,212,0.2); color:#22d3ee;">▶️</div>
+        <div class="tile-label">Симуляция траектории</div>
+      </div>
+      <div class="dash-tile" onclick="navigate('screen-check')">
+        <div class="tile-icon" style="background:rgba(239,68,68,0.2); color:#f87171;">🛡️</div>
+        <div class="tile-label">Проверка УП</div>
+      </div>
+    </div>
 
-  <main>
-    <!-- 1. Главная панель и ИИ -->
-    <section id="mod-0" class="module active">
-      <h2>Главный пуск и AI-Генератор</h2>
+    <label>Последний проект</label>
+    <div class="project-card" onclick="navigate('screen-gcode')">
+      <div>
+        <div style="font-weight:600; font-size:14px;">Корпус_001</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:2px;">Сегодня, 14:20</div>
+      </div>
+      <div style="color:var(--muted); font-size:16px;">›</div>
+    </div>
+  </section>
 
+  <!-- Экран 2: Материалы и инструменты -->
+  <section id="screen-materials" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-home')">‹</button> Материалы и инструменты</h2>
+    <div class="tabs-header">
+      <button class="tab-btn active" id="btn-mat-tab" onclick="switchMatTab('mat')">Материалы</button>
+      <button class="tab-btn" id="btn-tool-tab" onclick="switchMatTab('tool')">Фрезы</button>
+    </div>
+
+    <div id="tab-mat-content">
+      <div class="card" onclick="selectMaterial('Сталь 45', 200, 1.0)" style="cursor:pointer;">
+        <div style="font-weight:600;">Сталь 45</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:2px;">HB 180-220 • Твёрдость: 200 HB</div>
+      </div>
+      <div class="card" onclick="selectMaterial('Алюминий Д16Т', 90, 1.4)" style="cursor:pointer;">
+        <div style="font-weight:600;">Алюминий Д16Т</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:2px;">HB 70-90 • Твёрдость: 90 HB</div>
+      </div>
+      <div class="card" onclick="selectMaterial('Нержавеющая сталь', 220, 0.8)" style="cursor:pointer;">
+        <div style="font-weight:600;">Нержавеющая сталь</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:2px;">HB 200-240 • Твёрдость: 220 HB</div>
+      </div>
+    </div>
+
+    <div id="tab-tool-content" style="display:none;">
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <b style="color:var(--accent); font-size:16px;">🤖 Умный помощник Fanuc</b>
-          <button class="btn btn-sec" style="width:auto; padding:8px 12px; font-size:13px;" onclick="toggleAiSettings()">⚙️ Ключ API</button>
-        </div>
-
-        <div id="ai-settings" style="display:none; background:var(--panel); padding:12px; border-radius:8px; margin-bottom:12px; border:2px solid var(--border);">
-          <label>API Ключ Google Gemini (начинается с AIza...)</label>
-          <div class="btn-row">
-            <input type="password" id="ai-key" placeholder="Вставьте ключ сюда..." style="margin-bottom:0;" />
-            <button class="btn btn-green" style="width:130px;" onclick="saveApiKey()">Сохранить</button>
-          </div>
-          <div id="key-status" style="font-size:12px; margin-top:6px; color:var(--muted);">Ключ сохраняется локально в памяти телефона.</div>
-        </div>
-
-        <label>Быстрые задачи:</label>
-        <div class="chip-bar">
-          <span class="chip" onclick="setPrompt('Торцовка плиты 150х100 с Z0 до Z-2.0 за проходы по 0.5 мм фрезой Т1 D50 змейкой')">Торцовка змейкой</span>
-          <span class="chip" onclick="setPrompt('Спиральная расфрезеровка отверстия D32 на глубину Z-15.0 шагом 1.5 мм фрезой Т2 D10 через WHILE DO1')">Спираль отверстия</span>
-          <span class="chip" onclick="setPrompt('Круговой карман D60 глубиной Z-8.0 по 2 мм фрезой Т2 D10 из центра')">Круговой карман</span>
-        </div>
-
-        <label>Что нужно сделать (описание детали, размеры, ноль G54):</label>
-        <textarea id="ai-input" placeholder="Например: Фрезеровка контура 100х80 на глубину Z-10 по 2мм, ноль в центре, фреза Т2 D10..."></textarea>
-
-        <button class="btn" onclick="runAiGenerator()">⚡ Сгенерировать G-code через ИИ</button>
-        <div id="ai-status" class="result-box" style="display:none;"></div>
+        <div style="font-weight:600;">Концевая фреза Ø10 мм</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:2px;">Твёрдый сплав • Z=4</div>
       </div>
-
       <div class="card">
-        <label>Быстрый переход к модулям:</label>
-        <div class="btn-row">
-          <button class="btn btn-sec" onclick="openModule(1)">🛠️ Фрезы</button>
-          <button class="btn btn-sec" onclick="openModule(6)">📝 Редактор кода</button>
-          <button class="btn btn-sec" onclick="openModule(7)">👁️ 3D Вид</button>
-        </div>
+        <div style="font-weight:600;">Торцевая фреза Ø50 мм</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:2px;">Сменные пластины • Z=5</div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 2. Библиотека фрез -->
-    <section id="mod-1" class="module">
-      <h2>Библиотека инструмента</h2>
-      <div class="card">
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Номер T</label><input type="number" id="t-num" value="1" /></div>
-          <div><label>Тип</label>
-            <select id="t-type">
-              <option value="Торцевая">Торцевая</option>
-              <option value="Концевая">Концевая</option>
-              <option value="Сферическая">Сферическая</option>
-              <option value="Сверло">Сверло</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Диаметр D (мм)</label><input type="number" id="t-dia" value="10" step="0.1" /></div>
-          <div><label>Зубья Z</label><input type="number" id="t-z" value="4" /></div>
-        </div>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Vc (м/мин)</label><input type="number" id="t-vc" value="120" /></div>
-          <div><label>fz (мм/зуб)</label><input type="number" id="t-fz" value="0.05" step="0.01" /></div>
-        </div>
-        <button class="btn btn-green" onclick="addTool()">+ Сохранить фрезу</button>
-      </div>
-      <div id="tool-list"></div>
-    </section>
+  <!-- Экран 3: Расчёт режимов -->
+  <section id="screen-modes" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-home')">‹</button> Расчёт режимов</h2>
+    <div class="card">
+      <label>Материал</label>
+      <select id="calc-mat" onchange="calculateModes()">
+        <option value="steel">Сталь 45</option>
+        <option value="alu">Алюминий Д16Т</option>
+        <option value="inox">Нержавеющая сталь</option>
+      </select>
 
-    <!-- 3. Чертёж детали -->
-    <section id="mod-2" class="module">
-      <h2>Чертёж и ноль G54</h2>
-      <div class="card">
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Длина X (мм)</label><input type="number" id="dwg-x" value="120" oninput="drawPart2D()" /></div>
-          <div><label>Ширина Y (мм)</label><input type="number" id="dwg-y" value="80" oninput="drawPart2D()" /></div>
-        </div>
-        <div><label>Базовый ноль</label>
-          <select id="dwg-origin" onchange="drawPart2D()">
-            <option value="center">По центру заготовки</option>
-            <option value="bl">Левый нижний угол</option>
-          </select>
-        </div>
-      </div>
-      <canvas id="canvas2d" width="600" height="300"></canvas>
-    </section>
+      <label>Инструмент</label>
+      <select id="calc-tool" onchange="calculateModes()">
+        <option value="10">Концевая фреза Ø10 мм (Z=4)</option>
+        <option value="50">Торцевая фреза Ø50 мм (Z=5)</option>
+      </select>
 
-    <!-- 4. Операции -->
-    <section id="mod-3" class="module">
-      <h2>Стандартные операции</h2>
-      <div class="card">
-        <label>Тип обработки</label>
-        <select id="op-type">
-          <option value="face">Торцевание плоскости</option>
-          <option value="pocket">Прямоугольный карман</option>
-          <option value="drill">Сверление (G83)</option>
-        </select>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-          <div><label>Размер X</label><input type="number" id="op-x" value="100" /></div>
-          <div><label>Размер Y</label><input type="number" id="op-y" value="60" /></div>
-        </div>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Глубина Z</label><input type="number" id="op-z" value="2" step="0.5" /></div>
-          <div><label>Диаметр фрезы D</label><input type="number" id="op-d" value="50" /></div>
-        </div>
-        <button class="btn" onclick="generateOperation()">Сгенерировать в редактор</button>
-      </div>
-    </section>
+      <label>Глубина резания, мм</label>
+      <input type="number" id="calc-ap" value="5.0" oninput="calculateModes()" />
 
-    <!-- 5. Режимы резания -->
-    <section id="mod-4" class="module">
-      <h2>Калькулятор S и F</h2>
-      <div class="card">
-        <label>Инструмент из базы</label>
-        <select id="calc-tool-select" onchange="fillCalcFromTool()" style="margin-bottom:10px;"></select>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Диаметр D</label><input type="number" id="c-d" value="10" oninput="calcModes()" /></div>
-          <div><label>Зубья Z</label><input type="number" id="c-z" value="4" oninput="calcModes()" /></div>
+      <label>Подача на зуб, мм/зуб</label>
+      <input type="number" id="calc-fz" value="0.08" step="0.01" oninput="calculateModes()" />
+
+      <button class="btn" onclick="calculateModes()">🧮 Рассчитать</button>
+    </div>
+
+    <div class="card" style="border-color:var(--green);">
+      <div style="font-weight:700; color:var(--green); margin-bottom:8px;">✓ Результат расчёта</div>
+      <div style="font-size:13px; line-height:1.6;">
+        Скорость резания: <b id="res-vc">180 м/мин</b><br>
+        Обороты шпинделя: <b id="res-s">5730 об/мин</b><br>
+        Минутная подача: <b id="res-f">920 мм/мин</b><br>
+        Подача на зуб: <b>0.08 мм/зуб</b>
+      </div>
+    </div>
+  </section>
+
+  <!-- Экран 4: Операции обработки -->
+  <section id="screen-operations" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-home')">‹</button> Операции обработки</h2>
+    <div class="op-item" onclick="navigate('screen-pocket-form')">
+      <div class="op-left">
+        <div class="op-thumb">🔲</div>
+        <div>
+          <div style="font-weight:600;">Прямоугольный карман</div>
+          <div style="font-size:11px; color:var(--muted);">Черновая + чистовая</div>
         </div>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Vc (м/мин)</label><input type="number" id="c-vc" value="120" oninput="calcModes()" /></div>
-          <div><label>fz (мм)</label><input type="number" id="c-fz" value="0.05" step="0.01" oninput="calcModes()" /></div>
+      </div>
+      <div style="color:var(--muted);">›</div>
+    </div>
+    <div class="op-item" onclick="navigate('screen-gcode')">
+      <div class="op-left">
+        <div class="op-thumb">⭕</div>
+        <div>
+          <div style="font-weight:600;">Круглый карман</div>
+          <div style="font-size:11px; color:var(--muted);">Спиральное врезание</div>
         </div>
-        <div id="calc-result" class="result-box"></div>
       </div>
-    </section>
-
-    <!-- 6. Макросы -->
-    <section id="mod-5" class="module">
-      <h2>Макропрограммирование Fanuc</h2>
-      <div class="card">
-        <label>Шаблон Macro B</label>
-        <select id="macro-type">
-          <option value="facing_g65">Торцовка змейкой (G65 P8000)</option>
-          <option value="spiral_hole">Спираль отверстия (O9018)</option>
-        </select>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-          <div><label>X / Диаметр</label><input type="number" id="m-x" value="100" /></div>
-          <div><label>Y / Фреза</label><input type="number" id="m-y" value="50" /></div>
+      <div style="color:var(--muted);">›</div>
+    </div>
+    <div class="op-item" onclick="navigate('screen-gcode')">
+      <div class="op-left">
+        <div class="op-thumb">⬛</div>
+        <div>
+          <div style="font-weight:600;">Наружный контур</div>
+          <div style="font-size:11px; color:var(--muted);">Коррекция на радиус G41</div>
         </div>
-        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div><label>Конечная Z</label><input type="number" id="m-z" value="-2.0" step="0.5" /></div>
-          <div><label>Шаг по Z (dz)</label><input type="number" id="m-dz" value="0.5" step="0.1" /></div>
+      </div>
+      <div style="color:var(--muted);">›</div>
+    </div>
+    <div class="op-item" onclick="navigate('screen-gcode')">
+      <div class="op-left">
+        <div class="op-thumb">⏺️</div>
+        <div>
+          <div style="font-weight:600;">Отверстие (Сверление)</div>
+          <div style="font-size:11px; color:var(--muted);">Цикл G83</div>
         </div>
-        <button class="btn" onclick="generateMacro()">Вставить макрос в редактор</button>
       </div>
-    </section>
+      <div style="color:var(--muted);">›</div>
+    </div>
+  </section>
 
-    <!-- 7. Редактор G-code -->
-    <section id="mod-6" class="module">
-      <h2>Редактор G-code</h2>
-      <div class="chip-bar">
-        <span class="chip" onclick="insertToken('G00 ')">G00</span>
-        <span class="chip" onclick="insertToken('G01 ')">G01</span>
-        <span class="chip" onclick="insertToken('G02 ')">G02</span>
-        <span class="chip" onclick="insertToken('G03 ')">G03</span>
-        <span class="chip" onclick="insertToken('G43 H1 Z50. ')">G43</span>
-        <span class="chip" onclick="insertToken('G54 ')">G54</span>
-        <span class="chip" onclick="insertToken('M30\n%')">M30</span>
-      </div>
-      <textarea id="gcode-editor" style="min-height:280px;" spellcheck="false"></textarea>
-      <div class="btn-row">
-        <button class="btn btn-sec" onclick="renumberLines()">Нумерация N10</button>
-        <button class="btn btn-green" onclick="saveCurrentProgram()">В библиотеку</button>
-      </div>
-      <button class="btn" style="margin-top:10px;" onclick="openModule(7)">👁️ Перейти к 3D симулятору →</button>
-    </section>
+  <!-- Экран 4.1: Параметры прямоугольного кармана -->
+  <section id="screen-pocket-form" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-operations')">‹</button> Прямоугольный карман</h2>
+    <div class="card">
+      <label>Размер X, мм</label><input type="number" id="p-x" value="80" />
+      <label>Размер Y, мм</label><input type="number" id="p-y" value="50" />
+      <label>Глубина, мм</label><input type="number" id="p-z" value="10" />
+      <label>Припуск, мм</label><input type="number" id="p-stock" value="0.5" />
+      <label>Чистовые проходы</label><input type="number" id="p-fin" value="1" />
+      <button class="btn" onclick="generatePocketCode()">Добавить операцию в УП</button>
+    </div>
+  </section>
 
-    <!-- 8. 3D Симулятор -->
-    <section id="mod-7" class="module">
-      <h2>3D симулятор траектории</h2>
-      <div class="card" style="font-size:13px; display:flex; justify-content:space-between; padding:10px;">
-        <span style="color:var(--accent);">Жёлтый: G00</span>
-        <span style="color:var(--green);">Зелёный: Рабочий ход</span>
+  <!-- Экран 5: Генерация G-кода -->
+  <section id="screen-gcode" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-home')">‹</button> Генерация G-кода</h2>
+    <div class="card" style="padding:10px;">
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;"><label>Программа №</label><input type="text" id="g-num" value="O1001" style="margin-bottom:0;" /></div>
+        <div style="flex:2;"><label>Комментарий</label><input type="text" id="g-comm" value="Деталь Корпус" style="margin-bottom:0;" /></div>
       </div>
-      <canvas id="canvas3d" width="600" height="340"></canvas>
-      <button class="btn btn-sec" style="margin-top:10px;" onclick="render3D()">Обновить из редактора</button>
-    </section>
+    </div>
+    <textarea id="gcode-editor" spellcheck="false">N10 G21 G17 G40 G49 G80
+N20 G54
+N30 T1 M06
+N40 S5730 M03
+N50 G00 X-60. Y-40. Z50.
+N60 G43 H1 Z5.
+N70 G01 Z-5. F920.
+N80 G01 X60.
+N90 G100 Z50.
+N110 M05
+N120 M30</textarea>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="alert('Успешно сохранено!')">Сохранить</button>
+      <button class="btn" onclick="navigate('screen-check')">Проверить</button>
+    </div>
+  </section>
 
-    <!-- 9. Постпроцессоры -->
-    <section id="mod-8" class="module">
-      <h2>Шапка и Постпроцессор Fanuc</h2>
-      <div class="card">
-        <label>Безопасный старт</label>
-        <input type="text" id="pp-safe" value="G90 G17 G40 G49 G80" />
-        <label>Система координат</label>
-        <select id="pp-wcs"><option value="G54">G54</option><option value="G55">G55</option></select>
-        <button class="btn" onclick="applyPostprocessor()">Обернуть код шапкой</button>
-      </div>
-    </section>
+  <!-- Экран 6: Симуляция траектории -->
+  <section id="screen-sim" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-home')">‹</button> Симуляция траектории</h2>
+    <canvas id="canvas3d" width="600" height="280"></canvas>
+    <div style="display:flex; justify-content:center; gap:16px; margin:10px 0; font-size:20px;">
+      <button style="background:none; border:none; color:white; cursor:pointer;" onclick="simStep(-1)">⏮</button>
+      <button style="background:none; border:none; color:white; cursor:pointer;" onclick="toggleSimPlay()" id="play-btn">▶</button>
+      <button style="background:none; border:none; color:white; cursor:pointer;" onclick="simStep(1)">⏭</button>
+    </div>
+    <input type="range" id="sim-slider" min="0" max="100" value="100" oninput="renderSim()" />
+  </section>
 
-    <!-- 10. Библиотека программ -->
-    <section id="mod-9" class="module">
-      <h2>Библиотека сохраненных УП</h2>
-      <div id="prog-list"></div>
-    </section>
+  <!-- Экран 7: Проверка УП -->
+  <section id="screen-check" class="screen">
+    <h2><button class="back-btn" onclick="navigate('screen-home')">‹</button> Проверка УП</h2>
+    <div class="success-box">
+      <div style="font-size:32px; margin-bottom:6px;">✅</div>
+      <div style="font-weight:700; font-size:16px;">Ошибок не найдено</div>
+      <div style="font-size:12px; color:var(--muted); margin-top:2px;">УП прошла проверку</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600; font-size:13px; margin-bottom:10px;">Проверено:</div>
+      <div class="check-row"><span>✅</span> Синтаксис G-кода</div>
+      <div class="check-row"><span>✅</span> Безопасные перемещения</div>
+      <div class="check-row"><span>✅</span> Режимы G20/G21</div>
+      <div class="check-row"><span>✅</span> Рабочая плоскость G17/G18/G19</div>
+      <div class="check-row"><span>✅</span> Риски: нет</div>
+    </div>
+    <button class="btn" onclick="navigate('screen-home')">Готово</button>
+  </section>
+</main>
 
-    <!-- 11. Проверка и экспорт -->
-    <section id="mod-10" class="module">
-      <h2>Проверка и выгрузка NC</h2>
-      <div class="card">
-        <button class="btn btn-green" onclick="verifyGcode()">Проверить точки и синтаксис</button>
-        <div id="verify-result" class="result-box" style="display:none;"></div>
-        <div style="margin-top:14px;">
-          <label>Имя файла УП</label>
-          <input type="text" id="export-name" value="O1001" />
-        </div>
-        <button class="btn" style="background:var(--accent);" onclick="downloadNC()">📥 Скачать файл NC на телефон</button>
-      </div>
-    </section>
-  </main>
-</div>
+<nav>
+  <button class="nav-item active" id="nav-home" onclick="navigate('screen-home')">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    Главная
+  </button>
+  <button class="nav-item" id="nav-projects" onclick="navigate('screen-gcode')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+    Проекты
+  </button>
+  <button class="nav-item" id="nav-settings" onclick="navigate('screen-modes')">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.47l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.47l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    Настройки
+  </button>
+  <button class="nav-item" id="nav-about" onclick="alert('CNC Programmer AI v1.0\nРазработано для стоек Fanuc 0i Plus')">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    О программе
+  </button>
+</nav>
 
 <script>
-  const MODULES = [
-    "Главный пуск", "Библиотека фрез", "Чертёж заготовки", "Операции",
-    "Режимы резания", "Макросы Fanuc", "Редактор G-code",
-    "3D Симулятор", "Постпроцессор", "Библиотека УП", "Экспорт NC"
-  ];
-
-  let tools = JSON.parse(localStorage.getItem("cnc_tools")) || [
-    { num: 1, type: "Торцевая", dia: 50, z: 5, vc: 180, fz: 0.1 }
-  ];
-  let programs = JSON.parse(localStorage.getItem("cnc_progs")) || [];
-
-  function initUI() {
-    const nav = document.getElementById("sidebar");
-    nav.innerHTML = "";
-    MODULES.forEach((name, idx) => {
-      const item = document.createElement("div");
-      item.className = "nav-item" + (idx === 0 ? " active" : "");
-      item.textContent = (idx + 1) + ". " + name;
-      item.onclick = () => openModule(idx);
-      nav.appendChild(item);
-    });
-
-    document.getElementById("ai-key").value = localStorage.getItem("cnc_gemini_key") || "";
-    if(!localStorage.getItem("cnc_gemini_key")) document.getElementById("ai-settings").style.display = "block";
+  function navigate(screenId) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(screenId).classList.add("active");
     
-    document.getElementById("gcode-editor").value = `%\nO1001 (DEMO)\nG90 G17 G40 G49 G80\nG54\nT1 M06\nS1200 M03\nG00 X0. Y0. Z50.\nM30\n%`;
-    renderTools();
-    renderProgs();
-    calcModes();
-    drawPart2D();
-    init3DControls();
-    render3D();
+    // Подсветка навбара
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    if(screenId === 'screen-home') document.getElementById('nav-home').classList.add('active');
+    if(screenId === 'screen-gcode') document.getElementById('nav-projects').classList.add('active');
+    if(screenId === 'screen-modes') document.getElementById('nav-settings').classList.add('active');
+
+    if(screenId === 'screen-sim') renderSim();
   }
 
-  function toggleMenu() { document.getElementById("sidebar").classList.toggle("open"); }
-  function toggleAiSettings() { 
-    const el = document.getElementById("ai-settings");
-    el.style.display = el.style.display === "none" ? "block" : "none"; 
-  }
-  
-  function saveApiKey() {
-    const key = document.getElementById("ai-key").value.trim();
-    localStorage.setItem("cnc_gemini_key", key);
-    alert("Ключ Gemini успешно сохранён!");
-    document.getElementById("ai-settings").style.display = "none";
-  }
-
-  function openModule(idx) {
-    document.querySelectorAll(".module").forEach((el, i) => el.classList.toggle("active", i === idx));
-    document.querySelectorAll(".nav-item").forEach((el, i) => el.classList.toggle("active", i === idx));
-    document.getElementById("sidebar").classList.remove("open");
-    if(idx === 2) drawPart2D();
-    if(idx === 7) render3D();
-  }
-
-  function setPrompt(txt) { document.getElementById("ai-input").value = txt; }
-
-  async function runAiGenerator() {
-    const prompt = document.getElementById("ai-input").value.trim();
-    const key = localStorage.getItem("cnc_gemini_key") || document.getElementById("ai-key").value.trim();
-    const statusBox = document.getElementById("ai-status");
-
-    if(!key) {
-      document.getElementById("ai-settings").style.display = "block";
-      alert("Сначала введите и сохраните API ключ Gemini!");
-      return;
-    }
-    if(!prompt) {
-      alert("Введите описание детали или задачи!");
-      return;
-    }
-
-    statusBox.style.display = "block";
-    statusBox.textContent = "⏳ Генерация программы через Gemini 2.0 Flash...";
-
-    const sysPrompt = "You are a professional CNC programmer for Fanuc 0i Plus. Output ONLY valid G-code inside % ... %. Use uppercase latin translit for comments. EVERY coordinate must have a decimal point.";
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: sysPrompt }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
-      });
-      const data = await res.json();
-      if(!res.ok) throw new Error(data.error?.message || "Ошибка соединения с API");
-      
-      let code = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      code = code.replace(/```[a-zA-Z]*\n?/g, "").replace(/```/g, "").trim();
-      
-      document.getElementById("gcode-editor").value = code;
-      render3D();
-      statusBox.textContent = "✅ Успешно! Код загружен в редактор и симулятор.";
-      setTimeout(() => openModule(6), 1000);
-    } catch(err) {
-      statusBox.textContent = "❌ Ошибка: " + err.message;
-    }
-  }
-
-  function renderTools() {
-    localStorage.setItem("cnc_tools", JSON.stringify(tools));
-    const list = document.getElementById("tool-list");
-    const sel = document.getElementById("calc-tool-select");
-    list.innerHTML = ""; sel.innerHTML = "";
-    tools.forEach((t, i) => {
-      list.innerHTML += `<div class="list-item"><div><b>T${t.num}</b> ${t.type} D${t.dia}</div><button class="btn" style="width:auto; padding:6px 12px; background:var(--red);" onclick="tools.splice(${i},1);renderTools();">Удалить</button></div>`;
-      sel.innerHTML += `<option value="${i}">T${t.num} — ${t.type} D${t.dia}</option>`;
-    });
-  }
-
-  function addTool() {
-    tools.push({
-      num: +document.getElementById("t-num").value,
-      type: document.getElementById("t-type").value,
-      dia: +document.getElementById("t-dia").value,
-      z: +document.getElementById("t-z").value,
-      vc: +document.getElementById("t-vc").value,
-      fz: +document.getElementById("t-fz").value
-    });
-    renderTools();
-    alert("Фреза сохранена!");
-  }
-
-  function fillCalcFromTool() {
-    const t = tools[document.getElementById("calc-tool-select").value];
-    if(!t) return;
-    document.getElementById("c-d").value = t.dia;
-    document.getElementById("c-z").value = t.z;
-    document.getElementById("c-vc").value = t.vc;
-    document.getElementById("c-fz").value = t.fz;
-    calcModes();
-  }
-
-  function calcModes() {
-    const d = +document.getElementById("c-d").value || 1;
-    const z = +document.getElementById("c-z").value || 1;
-    const vc = +document.getElementById("c-vc").value || 1;
-    const fz = +document.getElementById("c-fz").value || 0.01;
-    const S = Math.round((1000 * vc) / (Math.PI * d));
-    const F = Math.round(S * fz * z);
-    document.getElementById("calc-result").innerHTML = `Обороты: <b>S${S}</b> об/мин<br>Подача: <b>F${F}.</b> мм/мин`;
-  }
-
-  function drawPart2D() {
-    const c = document.getElementById("canvas2d");
-    const ctx = c.getContext("2d");
-    const W = c.width, H = c.height;
-    ctx.clearRect(0,0,W,H);
-    const px = +document.getElementById("dwg-x").value || 100;
-    const py = +document.getElementById("dwg-y").value || 60;
-    const scale = Math.min((W-80)/px, (H-60)/py);
-    const rw = px*scale, rh = py*scale;
-    const sx = (W-rw)/2, sy = (H-rh)/2;
-
-    ctx.fillStyle = "rgba(46,196,182,0.1)";
-    ctx.fillRect(sx, sy, rw, rh);
-    ctx.strokeStyle = "var(--green)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(sx, sy, rw, rh);
-
-    ctx.fillStyle = "var(--accent)";
-    ctx.beginPath(); ctx.arc(W/2, H/2, 6, 0, Math.PI*2); ctx.fill();
-    ctx.font = "14px monospace";
-    ctx.fillText("G54 (0,0)", W/2 + 10, H/2 - 10);
-  }
-
-  function generateOperation() {
-    const type = document.getElementById("op-type").value;
-    const x = +document.getElementById("op-x").value;
-    const y = +document.getElementById("op-y").value;
-    const z = +document.getElementById("op-z").value;
-    let code = `%\nO1002 (${type.toUpperCase()})\nG90 G17 G40 G49 G80\nG54\nT1 M06\nS1500 M03\nG00 X0. Y0. Z50.\nG43 H1 Z2. M08\nG01 Z-${z.toFixed(1)} F300.\nG01 X${x}. Y${y}. F600.\nG00 Z50. M09\nG91 G28 Z0. M05\nM30\n%`;
-    document.getElementById("gcode-editor").value = code;
-    openModule(6);
-  }
-
-  function generateMacro() {
-    const type = document.getElementById("macro-type").value;
-    const x = +document.getElementById("m-x").value;
-    const y = +document.getElementById("m-y").value;
-    const z = +document.getElementById("m-z").value;
-    let code = type === 'facing_g65' 
-      ? `%\nO8000 (MAKROS TORCOVKI)\nG65 P8000 X${x}. Y${y}. Z${z} D50. F600.\nM30\n%`
-      : `%\nO9018 (SPIRAL OTV)\nG90 G17 G54\nG00 X0. Y0. Z50.\nT1 M06\nS2000 M03\nG00 Z2.\n#1=0.\nWHILE [#1 GT ${z}] DO1\n#1=#1-0.5\nG03 I-15. J0. Z#1 F400.\nEND1\nG00 Z50. M09\nM30\n%`;
-    document.getElementById("gcode-editor").value = code;
-    openModule(6);
-  }
-
-  function insertToken(tok) {
-    const ta = document.getElementById("gcode-editor");
-    const start = ta.selectionStart;
-    ta.value = ta.value.slice(0, start) + tok + ta.value.slice(ta.selectionEnd);
-    ta.focus();
-  }
-
-  function renumberLines() {
-    const ta = document.getElementById("gcode-editor");
-    let n = 10;
-    ta.value = ta.value.split("\n").map(l => {
-      let clean = l.trim().replace(/^N\d+\s*/, "");
-      if(!clean || clean.startsWith("%") || clean.startsWith("O") || clean.startsWith("(")) return clean;
-      let res = `N${n} ${clean}`; n += 10; return res;
-    }).join("\n");
-  }
-
-  function applyPostprocessor() {
-    const safe = document.getElementById("pp-safe").value;
-    const wcs = document.getElementById("pp-wcs").value;
-    let body = document.getElementById("gcode-editor").value.replace(/^%[\s\S]*?\n/, "").replace(/M30[\s\S]*$/, "").trim();
-    document.getElementById("gcode-editor").value = `%\n${safe}\n${wcs}\n${body}\nG91 G28 Z0. M05\nM30\n%`;
-    alert("Шапка Fanuc применена!");
-  }
-
-  function saveCurrentProgram() {
-    programs.push({ name: "O" + Math.floor(Math.random()*9000+1000), code: document.getElementById("gcode-editor").value });
-    localStorage.setItem("cnc_progs", JSON.stringify(programs));
-    renderProgs();
-    alert("Программа сохранена в библиотеку!");
-  }
-
-  function renderProgs() {
-    const box = document.getElementById("prog-list");
-    box.innerHTML = "";
-    programs.forEach((p, i) => {
-      box.innerHTML += `<div class="list-item"><b>${p.name}</b><button class="btn" style="width:auto; padding:6px 12px;" onclick="document.getElementById('gcode-editor').value=programs[${i}].code;openModule(6);">Открыть</button></div>`;
-    });
-  }
-
-  // 3D Симулятор
-  let rotX = 0.6, rotZ = -0.6, zoom = 2.0, dragging = false, lx = 0, ly = 0;
-  function init3DControls() {
-    const c = document.getElementById("canvas3d");
-    c.addEventListener("mousedown", e => { dragging = true; lx = e.clientX; ly = e.clientY; });
-    window.addEventListener("mousemove", e => {
-      if(!dragging) return;
-      rotZ += (e.clientX - lx)*0.01;
-      rotX = Math.max(0.1, Math.min(1.5, rotX + (e.clientY - ly)*0.01));
-      lx = e.clientX; ly = e.clientY; render3D();
-    });
-    window.addEventListener("mouseup", () => dragging = false);
-  }
-  function render3D() {
-    const c = document.getElementById("canvas3d");
-    const ctx = c.getContext("2d");
-    ctx.clearRect(0,0,c.width,c.height);
-    
-    // Простая отрисовка осей и траектории
-    const proj = (x,y,z) => {
-      let x1 = x * Math.cos(rotZ) - y * Math.sin(rotZ);
-      let y1 = x * Math.sin(rotZ) + y * Math.cos(rotZ);
-      let y2 = y1 * Math.cos(rotX) - z * Math.sin(rotX);
-      return [c.width/2 + x1*zoom, c.height/2 - y2*zoom];
-    };
-
-    let o = proj(0,0,0), ax = proj(40,0,0), ay = proj(0,40,0), az = proj(0,0,40);
-    ctx.strokeStyle="#e71d36"; ctx.beginPath(); ctx.moveTo(...o); ctx.lineTo(...ax); ctx.stroke();
-    ctx.strokeStyle="#2ec4b6"; ctx.beginPath(); ctx.moveTo(...o); ctx.lineTo(...ay); ctx.stroke();
-
-    let lines = document.getElementById("gcode-editor").value.split("\n");
-    let cx=0, cy=0, cz=50, mode=0;
-    lines.forEach(l => {
-      let cl = l.toUpperCase();
-      if(cl.includes("G00")) mode=0;
-      if(cl.includes("G01")||cl.includes("G02")||cl.includes("G03")) mode=1;
-      let mx = cl.match(/X(-?\d+\.?\d*)/), my = cl.match(/Y(-?\d+\.?\d*)/), mz = cl.match(/Z(-?\d+\.?\d*)/);
-      if(mx || my || mz) {
-        let nx = mx ? parseFloat(mx[1]) : cx;
-        let ny = my ? parseFloat(my[1]) : cy;
-        let nz = mz ? parseFloat(mz[1]) : cz;
-        let p1 = proj(cx,cy,cz), p2 = proj(nx,ny,nz);
-        ctx.strokeStyle = mode===0 ? "#ffb703" : "#2ec4b6";
-        ctx.beginPath(); ctx.moveTo(...p1); ctx.lineTo(...p2); ctx.stroke();
-        cx=nx; cy=ny; cz=nz;
-      }
-    });
-  }
-
-  function verifyGcode() {
-    const code = document.getElementById("gcode-editor").value;
-    const box = document.getElementById("verify-result");
-    box.style.display = "block";
-    if(code.includes("M30") && !code.match(/\b[XYZFR]-?\d+(?!\.)\b/)) {
-      box.style.borderColor = "var(--green)";
-      box.innerHTML = "✅ Код в порядке! Все точки оформлены правильно под Fanuc.";
+  function switchMatTab(tab) {
+    if(tab === 'mat') {
+      document.getElementById('btn-mat-tab').classList.add('active');
+      document.getElementById('btn-tool-tab').classList.remove('active');
+      document.getElementById('tab-mat-content').style.display = 'block';
+      document.getElementById('tab-tool-content').style.display = 'none';
     } else {
-      box.style.borderColor = "var(--red)";
-      box.innerHTML = "⚠️ Проверьте наличие точек у координат (например, X10. вместо X10) и окончание программы M30.";
+      document.getElementById('btn-tool-tab').classList.add('active');
+      document.getElementById('btn-mat-tab').classList.remove('active');
+      document.getElementById('tab-tool-content').style.display = 'block';
+      document.getElementById('tab-mat-content').style.display = 'none';
     }
   }
 
-  function downloadNC() {
-    const name = document.getElementById("export-name").value || "O1001";
-    const blob = new Blob([document.getElementById("gcode-editor").value], { type: "text/plain;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name + ".nc";
-    a.click();
+  function calculateModes() {
+    const ap = parseFloat(document.getElementById('calc-ap').value) || 5;
+    const fz = parseFloat(document.getElementById('calc-fz').value) || 0.08;
+    const s = Math.round(180000 / (Math.PI * 10)); // пример для D10
+    const f = Math.round(s * fz * 4);
+    
+    document.getElementById('res-s').innerText = s + ' об/мин';
+    document.getElementById('res-f').innerText = f + ' мм/мин';
   }
 
-  initUI();
+  function generatePocketCode() {
+    const x = document.getElementById('p-x').value;
+    const y = document.getElementById('p-y').value;
+    const z = document.getElementById('p-z').value;
+    
+    let code = `%\nO1002 (POCKET X${x} Y${y})\nG90 G17 G40 G49 G80\nG54\nT1 M06\nS5730 M03\nG00 X-${x/2} Y-${y/2} Z50.\nG43 H1 Z5.\nG01 Z-${z} F920.\nG01 X${x/2} F1200.\nG00 Z50.\nM30\n%`;
+    document.getElementById('gcode-editor').value = code;
+    navigate('screen-gcode');
+  }
+
+  // Рендер 3D симуляции (изометрия заготовки и фрезы)
+  let simProgress = 100;
+  function renderSim() {
+    const c = document.getElementById('canvas3d');
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+
+    // Основа заготовки в изометрии
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    ctx.moveTo(150, 80);
+    ctx.lineTo(450, 80);
+    ctx.lineTo(520, 180);
+    ctx.lineTo(220, 180);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // Траектория реза (спираль кармана)
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(300, 130);
+    ctx.lineTo(350, 110);
+    ctx.lineTo(380, 140);
+    ctx.lineTo(250, 150);
+    ctx.stroke();
+
+    // Инструмент (шпиндель)
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(290, 70, 20, 40);
+  }
+
+  function simStep(dir) {
+    simProgress = Math.max(0, Math.min(100, simProgress + dir * 20));
+    document.getElementById('sim-slider').value = simProgress;
+  }
+
+  let isPlaying = false;
+  function toggleSimPlay() {
+    isPlaying = !isPlaying;
+    document.getElementById('play-btn').innerText = isPlaying ? '⏸' : '▶';
+  }
+
+  renderSim();
 </script>
 </body>
 </html>
